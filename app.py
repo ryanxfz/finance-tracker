@@ -2,7 +2,11 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
-import os
+from saveData import load_data, save_data
+
+if "data_loaded" not in st.session_state:
+    load_data()
+    st.session_state.dataloaded = True
 
 st.title("Spendings sheet")
 
@@ -13,8 +17,6 @@ if "currency" not in st.session_state:
     st.session_state.currency = "EUR"
 if "income" not in st.session_state:
     st.session_state.income = []
-if "fixed_costs" not in st.session_state:
-    st.session_state.fixed_costs = {}
 
 current_year = datetime.datetime.now().year
 years = list(range(2022, current_year + 1))
@@ -78,6 +80,8 @@ elif page == "Work Income":
                     "amount": amount
                 }
             )
+            save_data()
+            st.success("Data saved!")
     if st.session_state.income:
         df_income = pd.DataFrame(st.session_state.income)
         st.subheader("Income Records")
@@ -117,6 +121,8 @@ else:
                     "notes": notes,
                 }
             )
+            save_data()
+            st.success("Data saved!")
 
     # Display spendings for the selected year
     if st.session_state.spendings:
@@ -134,52 +140,3 @@ else:
             st.info("No spendings entered for selected year and currency.")
     else:
         st.info("No spendings entered yet.")
-
-
-DATA_DIR = "data"
-
-def load_data():
-    # Spendings
-    spendings_path = os.path.join(DATA_DIR, "spendings.csv")
-    if os.path.exists(spendings_path):
-        st.session_state.spendings = pd.read_csv(spendings_path).to_dict("records")
-    else:
-        st.session_state.spendings = []
-
-    # Income
-    income_path = os.path.join(DATA_DIR, "income.csv")
-    if os.path.exists(income_path):
-        st.session_state.income = pd.read_csv(income_path).to_dict("records")
-    else:
-        st.session_state.income = []
-
-    # Fixed costs
-    fixed_costs_path = os.path.join(DATA_DIR, "fixed_costs.csv")
-    if os.path.exists(fixed_costs_path):
-        df_fixed = pd.read_csv(fixed_costs_path)
-        st.session_state.fixed_costs = {}
-        for _, row in df_fixed.iterrows():
-            year = int(row["year"])
-            entry = row.drop("year").to_dict()
-            if year not in st.session_state.fixed_costs:
-                st.session_state.fixed_costs[year] = []
-            st.session_state.fixed_costs[year].append(entry)
-    else:
-        st.session_state.fixed_costs = {}
-
-def save_data():
-    os.makedirs(DATA_DIR, exist_ok=True)
-    pd.DataFrame(st.session_state.spendings).to_csv(os.path.join(DATA_DIR, "spendings.csv"), index=False)
-    pd.DataFrame(st.session_state.income).to_csv(os.path.join(DATA_DIR, "income.csv"), index=False)
-    fixed_rows = []
-    for year, entries in st.session_state.fixed_costs.items():
-        for entry in entries:
-            row = {"year": year}
-            row.update(entry)
-            fixed_rows.append(row)
-    pd.DataFrame(fixed_rows).to_csv(os.path.join(DATA_DIR, "fixed_costs.csv"), index=False)
-
-# Load data at startup
-if "data_loaded" not in st.session_state:
-    load_data()
-    st.session_state.data_loaded = True
