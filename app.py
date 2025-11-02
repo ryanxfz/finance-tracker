@@ -20,12 +20,6 @@ if "income" not in st.session_state:
 if "custom_pages" not in st.session_state:
     st.session_state.custom_pages = []
 
-# steamlit doesnt have a built in modal, so here's a workaround.
-if "show_add_page_modal" not in st.session_state:
-    st.session_state.show_add_page_modal = False
-
-if st.sidebar.button("Add Page"):
-    st.session_state.show_add_page_modal = True
 
 current_year = datetime.datetime.now().year
 years = list(range(2022, current_year + 1))
@@ -49,6 +43,34 @@ pages = (
     st.session_state.custom_pages
     )
 page = st.sidebar.selectbox("Select Page", pages)
+
+with st.sidebar.expander("Add custom Page"):
+    if "page_added_success" in st.session_state:
+        st.success(st.session_state.page_added_success)
+        del st.session_state.page_added_success
+    st.markdown("### Enter new custom page name")
+    new_page_name = st.text_input("Custom page name", key="new_custom_page_name")
+    if st.button("Add new page", key="add_new_page"):
+        if new_page_name not in st.session_state.custom_pages:
+            st.session_state.custom_pages.append(new_page_name)
+            st.session_state.page_added_success = f"Page successfully added: {new_page_name}"
+            st.rerun()
+        else:
+            st.error("Page name already exists, pick another name")
+
+with st.sidebar.expander("Remove Custom Page"):
+    if "page_removed_success" in st.session_state:
+        st.success(st.session_state.page_removed_success)
+        del st.session_state.page_removed_success
+    page_to_remove = st.selectbox("Select custom page to remove", st.session_state.custom_pages, key="remove_custom_page_select")
+    if st.session_state.custom_pages == []:
+        st.write("No custom pages available to delete")
+    else:
+        if st.button("Remove Page", key="remove_custom_page_btn"):
+            st.session_state.custom_pages.remove(page_to_remove)
+            st.session_state.page_removed_success = f"Removed custom page: {page_to_remove}"
+            st.rerun()
+
 
 if page == "Spendings Summary":
     st.header("Spendings Summary")
