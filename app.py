@@ -10,8 +10,6 @@ if "data_loaded" not in st.session_state:
 
 st.title("Spendings sheet")
 
-
-
 # Initialize session state for spendings
 if "spendings" not in st.session_state:
     st.session_state.spendings = []
@@ -19,6 +17,15 @@ if "currency" not in st.session_state:
     st.session_state.currency = "EUR"
 if "income" not in st.session_state:
     st.session_state.income = []
+if "custom_pages" not in st.session_state:
+    st.session_state.custom_pages = []
+
+# steamlit doesnt have a built in modal, so here's a workaround.
+if "show_add_page_modal" not in st.session_state:
+    st.session_state.show_add_page_modal = False
+
+if st.sidebar.button("Add Page"):
+    st.session_state.show_add_page_modal = True
 
 current_year = datetime.datetime.now().year
 years = list(range(2022, current_year + 1))
@@ -35,7 +42,12 @@ categories = [
     "Savings"
 ]
 
-pages = ["Spendings Summary"] + [f"Spendings {year}" for year in years] + ["Work Income"]
+pages = (
+    ["Spendings Summary"] + 
+    [f"Spendings {year}" for year in years] + 
+    ["Work Income"] + 
+    st.session_state.custom_pages
+    )
 page = st.sidebar.selectbox("Select Page", pages)
 
 if page == "Spendings Summary":
@@ -102,6 +114,39 @@ elif page == "Work Income":
         st.dataframe(pivot_income.style.format("{:,.2f}"))
     else:
         st.info("No income records entered yet.")
+
+
+elif page in st.session_state.custom_pages:
+    st.header(page)
+    # You can use the same form and table logic as for year pages,
+    # or customize as needed for each custom page.
+    with st.form(f"custom_spending_form_{page}"):
+        month = st.selectbox("Month", months)
+        currency = st.selectbox("Currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
+        amount = st.number_input("Amount Spent", min_value=0.0, format="%.2f")
+        category = st.selectbox("Category", categories)
+        notes = st.text_input("Notes for this spending")
+        submit = st.form_submit_button("Add Spending")
+        if submit and amount > 0:
+            st.session_state.spendings.append(
+                {
+                    "amount": amount,
+                    "category": category,
+                    "year": "Custom",
+                    "month": month,
+                    "currency": currency,
+                    "notes": notes,
+                    "custom_page": page
+                }
+            )
+            save_data()
+            st.success("Data saved!")
+
+    # Display spendings for this custom page
+    df = pd.DataFrame(st.session_state.spendings)
+    df_custom = df[df.get("custom_page", "") == page]
+    st.subheader(f"Spendings for {page}")
+    st.dataframe(df_custom)
 
 else:
     year_page = int(page.split(" ")[1])
