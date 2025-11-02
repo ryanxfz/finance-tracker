@@ -10,6 +10,8 @@ if "data_loaded" not in st.session_state:
 
 st.title("Spendings sheet")
 
+
+
 # Initialize session state for spendings
 if "spendings" not in st.session_state:
     st.session_state.spendings = []
@@ -62,6 +64,7 @@ if page == "Spendings Summary":
             st.info("No spendings entered for selected currency.")
     else:
         st.info("No spendings entered yet.")
+
 
 elif page == "Work Income":
     st.header("Work Income")
@@ -129,14 +132,34 @@ else:
         df = pd.DataFrame(st.session_state.spendings)
         selected_currency = st.selectbox("Show currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
         df_year = df[(df["year"] == year_page) & (df["currency"] == selected_currency)]
+        st.subheader(f"Spendings for {year_page}")
         st.dataframe(df_year)
-        st.subheader(f"Spending Proportions for {year_page}")
-        proportions = df_year.groupby("category")["amount"].sum()
-        if not proportions.empty:
-            fig, ax = plt.subplots()
-            ax.pie(proportions, labels=proportions.index, autopct="%1.1f%%")
-            st.pyplot(fig)
-        else:
-            st.info("No spendings entered for selected year and currency.")
+
+        # Option to delete by index
+        st.write("Delete a record by index:")
+        if "delete_mode" not in st.session_state:
+            st.session_state.delete_mode = False
+        if st.button("Delete by Index"):
+            st.session_state.delete_mode = True
+
+        if st.session_state.delete_mode and not df_year.empty:
+            idx_to_delete = st.number_input(
+                "Enter the index number to delete",
+                min_value=0,
+                max_value=len(df_year)-1,
+                step=1,
+                key="delete_idx_input"
+            )
+            if st.button("Confirm Delete", key="confirm_delete_btn"):
+                if 0 <= idx_to_delete < len(df_year):
+                    original_idx = df_year.index[idx_to_delete]
+                    st.session_state.spendings.pop(original_idx)
+                    save_data()
+                    st.session_state.delete_mode = False
+                    st.rerun()
+                else:
+                    st.warning("Invalid index selected.")
+            if st.button("Cancel", key="cancel_delete_btn"):
+                st.session_state.delete_mode = False
     else:
         st.info("No spendings entered yet.")
