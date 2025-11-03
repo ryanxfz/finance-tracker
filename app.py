@@ -8,7 +8,7 @@ if "data_loaded" not in st.session_state:
     load_data()
     st.session_state.dataloaded = True
 
-st.title("Spendings sheet")
+# st.title("Spendings sheet")
 
 # Initialize session state for spendings
 if "spendings" not in st.session_state:
@@ -19,7 +19,8 @@ if "income" not in st.session_state:
     st.session_state.income = []
 if "custom_pages" not in st.session_state:
     st.session_state.custom_pages = []
-
+if "custom_pages_spendings" not in st.session_state:
+    st.session_state.custom_pages_spendings = {}
 
 current_year = datetime.datetime.now().year
 years = list(range(2022, current_year + 1))
@@ -99,7 +100,6 @@ if page == "Spendings Summary":
     else:
         st.info("No spendings entered yet.")
 
-
 elif page == "Work Income":
     st.header("Work Income")
     with st.form("work_income_form"):
@@ -137,43 +137,62 @@ elif page == "Work Income":
     else:
         st.info("No income records entered yet.")
 
-
+# for custom pages
 elif page in st.session_state.custom_pages:
     st.header(page)
-    # You can use the same form and table logic as for year pages,
-    # or customize as needed for each custom page.
+    if page not in st.session_state.custom_pages_spendings:
+        st.session_state.custom_pages_spendings[page] = []
+    
     with st.form(f"custom_spending_form_{page}"):
-        month = st.selectbox("Month", months)
         currency = st.selectbox("Currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
         amount = st.number_input("Amount Spent", min_value=0.0, format="%.2f")
-        category = st.selectbox("Category", categories)
         notes = st.text_input("Notes for this spending")
         submit = st.form_submit_button("Add Spending")
         if submit and amount > 0:
-            st.session_state.spendings.append(
+            st.session_state.custom_pages_spendings[page].append(
                 {
-                    "amount": amount,
-                    "category": category,
-                    "year": "Custom",
-                    "month": month,
                     "currency": currency,
+                    "amount": amount,
                     "notes": notes,
-                    "custom_page": page
                 }
             )
             save_data()
             st.success("Data saved!")
-
-    # Display spendings for this custom page
-    df = pd.DataFrame(st.session_state.spendings)
-    df_custom = df[df.get("custom_page", "") == page]
+    
+    df_custom_pages = pd.DataFrame(st.session_state.custom_pages_spendings[page])
     st.subheader(f"Spendings for {page}")
-    st.dataframe(df_custom)
+    st.dataframe(df_custom_pages)
 
+    if not df_custom_pages.empty and "amount" in df_custom_pages.columns:
+        total = df_custom_pages["amount"].sum()
+        st.markdown(f"**Total Spendings:** {total:,.2f}")
+
+    st.markdown("## Add where you want this spendings to be appended to: ")
+    with st.form("spending_form"):
+        month = st.selectbox("Month", months)
+        year = st.selectbox("Year", years)
+        category = st.selectbox("Category", categories)
+        submit = st.form_submit_button("Append spendings to the selected month and year")
+        if submit and st.session_state.custom_pages_spendings[page]:
+            st.session_state.spendings.append(
+                {
+                    "amount": total,
+                    "category": category,
+                    "year": year,
+                    "month": month,
+                    "currency": currency,
+                    "notes": notes,
+                }
+            )
+            save_data()
+            st.success("Data appended to " + str(month) + " " + str(year))
+        
+
+# for every year
 else:
     year_page = int(page.split(" ")[1])
+    st.header(f"Spendings for {year_page}")
     with st.form("spending_form"):
-        st.markdown(f"**Year:** {year_page}")
         month = st.selectbox("Month", months)
         currency = st.selectbox("Currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
         amount = st.number_input("Amount Spent", min_value=0.0, format="%.2f")
@@ -201,6 +220,16 @@ else:
         df_year = df[(df["year"] == year_page) & (df["currency"] == selected_currency)]
         st.subheader(f"Spendings for {year_page}")
         st.dataframe(df_year)
+
+        # pie chart:
+        st.subheader(f"Spending Proportions for {year_page}")
+        proportions = df_year.groupby("category")["amount"].sum()
+        if not proportions.empty:
+            fig, ax = plt.subplots()
+            ax.pie(proportions, labels=proportions.index, autopct="%1.1f%%")
+            st.pyplot(fig)
+        else:
+            st.info("No spendings entered for selected year and currency.")
 
         # Option to delete by index
         st.write("Delete a record by index:")
