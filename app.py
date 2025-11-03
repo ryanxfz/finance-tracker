@@ -54,6 +54,7 @@ with st.sidebar.expander("Add custom Page"):
     if st.button("Add new page", key="add_new_page"):
         if new_page_name not in st.session_state.custom_pages:
             st.session_state.custom_pages.append(new_page_name)
+            save_data()
             st.session_state.page_added_success = f"Page successfully added: {new_page_name}"
             st.rerun()
         else:
@@ -69,6 +70,7 @@ with st.sidebar.expander("Remove Custom Page"):
     else:
         if st.button("Remove Page", key="remove_custom_page_btn"):
             st.session_state.custom_pages.remove(page_to_remove)
+            save_data()
             st.session_state.page_removed_success = f"Removed custom page: {page_to_remove}"
             st.rerun()
 
@@ -219,8 +221,7 @@ else:
         selected_currency = st.selectbox("Show currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
         df_year = df[(df["year"] == year_page) & (df["currency"] == selected_currency)]
         st.subheader(f"Spendings for {year_page}")
-
-        
+    
         for month in months:
             df_month = df_year[df_year["month"] == month]
             df_without_month = df_month.drop(columns=["month"]) # dont have to include the month again in the table, since it's already determined in the expander
