@@ -219,7 +219,16 @@ else:
         selected_currency = st.selectbox("Show currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
         df_year = df[(df["year"] == year_page) & (df["currency"] == selected_currency)]
         st.subheader(f"Spendings for {year_page}")
-        st.dataframe(df_year)
+
+        
+        for month in months:
+            df_month = df_year[df_year["month"] == month]
+            df_without_month = df_month.drop(columns=["month"]) # dont have to include the month again in the table, since it's already determined in the expander
+            with st.expander(f"{month} ({len(df_month)})"):
+                if not df_month.empty:
+                    st.dataframe(df_without_month)
+                else:
+                    st.info(f"No spendings entered for {month}.")
 
         # pie chart:
         st.subheader(f"Spending Proportions for {year_page}")
