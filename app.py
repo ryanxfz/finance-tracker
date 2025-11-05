@@ -271,8 +271,8 @@ else:
     else:
         st.info("No spendings entered yet.")
 
-
-# if st.session_state.spendings and st.session-state.income:
+# TODO: Implement logic so that Savings = Income - Spendings
+# if st.session_state.spendings and st.session_state.income:
 #     df_spendings = pd.DataFrame(st.session_state.spendings)
 #     df_income = pd.DataFrame(st.session_state.income)
 #     selected_currency = st.selectbox("Currency for Savings Calculation")
