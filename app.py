@@ -228,6 +228,9 @@ else:
                     st.dataframe(df_without_month)
                 else:
                     st.info(f"No spendings entered for {month}.")
+                month_total = df_month["amount"].sum()
+                st.markdown(f"Total Spending in {month}: €" + str(round(month_total,2)))
+        
 
         # pie chart:
         st.subheader(f"Spending Proportions for {year_page}")
@@ -267,3 +270,9 @@ else:
                 st.session_state.delete_mode = False
     else:
         st.info("No spendings entered yet.")
+
+
+# if st.session_state.spendings and st.session-state.income:
+#     df_spendings = pd.DataFrame(st.session_state.spendings)
+#     df_income = pd.DataFrame(st.session_state.income)
+#     selected_currency = st.selectbox("Currency for Savings Calculation")
