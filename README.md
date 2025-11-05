@@ -1,5 +1,5 @@
 # Finance Tracker
-A simple Streamlit app to track my spendings. All features are tailored to my needs and preferences. All data is stored locally in a `.csv` file.
+A simple Streamlit app to track my spendings. All features are tailored to my needs and preferences. All data is stored to the local disk in a `.csv` file.
 
 ## Features
 - **Spendings Summary:** View monthly and yearly summaries of spendings with pie charts visualising the percentage of each spending categories. The categories are: Groceries, Leisure/Entertainment, Bills, Rent, Savings, Other.
