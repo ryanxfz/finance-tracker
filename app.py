@@ -41,6 +41,7 @@ PAGES = (
     st.session_state.custom_pages
     )
 INCOME_SOURCES = ["Family", "Work", "Other"]
+CURRENCIES = ["EUR", "IDR", "SGD", "HUF"] # eventually with external currency exchange API
 
 page = st.sidebar.selectbox("Select Page", PAGES)
 
@@ -73,12 +74,11 @@ with st.sidebar.expander("Remove Custom Page"):
             st.session_state.page_removed_success = f"Removed custom page: {page_to_remove}"
             st.rerun()
 
-
 if page == "Spendings Summary":
     st.header("Spendings Summary")
     if st.session_state.spendings:
         df = pd.DataFrame(st.session_state.spendings)
-        selected_currency = st.selectbox("Show Currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
+        selected_currency = st.selectbox("Show Currency", CURRENCIES, index=0)
         df_filtered = df[df["currency"] == selected_currency]
         pivot = pd.pivot_table(
             df_filtered,
@@ -145,7 +145,7 @@ elif page in st.session_state.custom_pages:
         st.session_state.custom_pages_spendings[page] = []
     
     with st.form(f"custom_spending_form_{page}"):
-        currency = st.selectbox("Currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
+        currency = st.selectbox("Currency", CURRENCIES, index=0)
         amount = st.number_input("Amount Spent", min_value=0.0, format="%.2f")
         notes = st.text_input("Notes for this spending")
         submit = st.form_submit_button("Add Spending")
@@ -186,7 +186,7 @@ elif page in st.session_state.custom_pages:
                 }
             )
             save_data()
-            st.success("Data appended to " + str(month) + " " + str(year))
+            st.success(f"Data appended to {str(month)} {str(year)}")
 
 # for every year
 else:
@@ -194,7 +194,7 @@ else:
     st.header(f"Spendings for {year_page}")
     with st.form("spending_form"):
         month = st.selectbox("Month", MONTHS)
-        currency = st.selectbox("Currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
+        currency = st.selectbox("Currency", CURRENCIES, index=0)
         amount = st.number_input("Amount Spent", min_value=0.0, format="%.2f")
         category = st.selectbox("Category", SPENDING_CATEGORIES)
         notes = st.text_input("Notes for this spending")
@@ -216,7 +216,7 @@ else:
     # Display spendings for the selected year
     if st.session_state.spendings:
         df = pd.DataFrame(st.session_state.spendings)
-        selected_currency = st.selectbox("Show currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
+        selected_currency = st.selectbox("Show currency", CURRENCIES, index=0)
         df_year = df[(df["year"] == year_page) & (df["currency"] == selected_currency)]
         st.subheader(f"Spendings for {year_page}")
     
@@ -229,7 +229,7 @@ else:
                 else:
                     st.info(f"No spendings entered for {month}.")
                 month_total = df_month["amount"].sum()
-                st.markdown(f"Total Spending in {month}: €" + str(round(month_total,2)))
+                st.markdown(f"Total Spending in {month}: €{str(round(month_total,2))}")
         
 
         # pie chart:
