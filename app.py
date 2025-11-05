@@ -8,9 +8,7 @@ if "data_loaded" not in st.session_state:
     load_data()
     st.session_state.dataloaded = True
 
-# st.title("Spendings sheet")
-
-# Initialize session state for spendings
+# session states
 if "spendings" not in st.session_state:
     st.session_state.spendings = []
 if "currency" not in st.session_state:
@@ -22,28 +20,29 @@ if "custom_pages" not in st.session_state:
 if "custom_pages_spendings" not in st.session_state:
     st.session_state.custom_pages_spendings = {}
 
-current_year = datetime.datetime.now().year
-years = list(range(2022, current_year + 1))
-months = [
+# constants
+CURRENT_YEAR = datetime.datetime.now().year
+YEAR_RANGE = list(range(2022, CURRENT_YEAR + 1))
+MONTHS = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
 ]
-categories = [
+SPENDING_CATEGORIES = [
     "Groceries",
     "Leisure/Entertainment",
     "Bills",
     "Wohnung",
-    "Other",
-    "Savings"
+    "Other"
 ]
-
-pages = (
+PAGES = (
     ["Spendings Summary"] + 
-    [f"Spendings {year}" for year in years] + 
-    ["Work Income"] + 
+    [f"Spendings {year}" for year in YEAR_RANGE] + 
+    ["Income"] + 
     st.session_state.custom_pages
     )
-page = st.sidebar.selectbox("Select Page", pages)
+INCOME_SOURCES = ["Family", "Work", "Other"]
+
+page = st.sidebar.selectbox("Select Page", PAGES)
 
 with st.sidebar.expander("Add custom Page"):
     if "page_added_success" in st.session_state:
@@ -89,7 +88,7 @@ if page == "Spendings Summary":
             aggfunc="sum",
             fill_value=0
         )
-        pivot = pivot.reindex(months)
+        pivot = pivot.reindex(MONTHS)
         st.dataframe(pivot.style.format("{:,.2f}"))
         st.subheader("Spending Proportions")
         proportions = df_filtered.groupby("category")["amount"].sum()
@@ -102,12 +101,12 @@ if page == "Spendings Summary":
     else:
         st.info("No spendings entered yet.")
 
-elif page == "Work Income":
-    st.header("Work Income")
-    with st.form("work_income_form"):
-        year = st.selectbox("Year", years)
-        month = st.selectbox("Month", months)
-        source = st.text_input("Income source")
+elif page == "Income":
+    st.header("Income")
+    with st.form("income_form"):
+        year = st.selectbox("Year", YEAR_RANGE)
+        month = st.selectbox("Month", MONTHS)
+        source = st.selectbox("Income source", INCOME_SOURCES)
         amount = st.number_input("Earned amount", min_value=0.0, format="%.2f")
         submit = st.form_submit_button("Add income")
         if submit and amount > 0:
@@ -134,7 +133,7 @@ elif page == "Work Income":
             aggfunc="sum",
             fill_value=0
         )
-        pivot_income = pivot_income.reindex(months)
+        pivot_income = pivot_income.reindex(MONTHS)
         st.dataframe(pivot_income.style.format("{:,.2f}"))
     else:
         st.info("No income records entered yet.")
@@ -171,9 +170,9 @@ elif page in st.session_state.custom_pages:
 
     st.markdown("## Add where you want this spendings to be appended to: ")
     with st.form("spending_form"):
-        month = st.selectbox("Month", months)
-        year = st.selectbox("Year", years)
-        category = st.selectbox("Category", categories)
+        month = st.selectbox("Month", MONTHS)
+        year = st.selectbox("Year", YEAR_RANGE)
+        category = st.selectbox("Category", SPENDING_CATEGORIES)
         submit = st.form_submit_button("Append spendings to the selected month and year")
         if submit and st.session_state.custom_pages_spendings[page]:
             st.session_state.spendings.append(
@@ -188,17 +187,16 @@ elif page in st.session_state.custom_pages:
             )
             save_data()
             st.success("Data appended to " + str(month) + " " + str(year))
-        
 
 # for every year
 else:
     year_page = int(page.split(" ")[1])
     st.header(f"Spendings for {year_page}")
     with st.form("spending_form"):
-        month = st.selectbox("Month", months)
+        month = st.selectbox("Month", MONTHS)
         currency = st.selectbox("Currency", ["EUR", "IDR", "HUF", "SGD"], index=0)
         amount = st.number_input("Amount Spent", min_value=0.0, format="%.2f")
-        category = st.selectbox("Category", categories)
+        category = st.selectbox("Category", SPENDING_CATEGORIES)
         notes = st.text_input("Notes for this spending")
         submit = st.form_submit_button("Add Spending")
         if submit and amount > 0:
@@ -222,7 +220,7 @@ else:
         df_year = df[(df["year"] == year_page) & (df["currency"] == selected_currency)]
         st.subheader(f"Spendings for {year_page}")
     
-        for month in months:
+        for month in MONTHS:
             df_month = df_year[df_year["month"] == month]
             df_without_month = df_month.drop(columns=["month"]) # dont have to include the month again in the table, since it's already determined in the expander
             with st.expander(f"{month} ({len(df_month)})"):
