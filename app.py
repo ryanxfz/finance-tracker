@@ -228,10 +228,9 @@ else:
                     st.dataframe(df_without_month)
                 else:
                     st.info(f"No spendings entered for {month}.")
-                month_total = df_month["amount"].sum()
+                month_total = df_month[df_month["category"] != "Savings"]["amount"].sum()
                 st.markdown(f"Total Spending in {month}: €{str(round(month_total,2))}")
         
-
         # pie chart:
         st.subheader(f"Spending Proportions for {year_page}")
         proportions = df_year.groupby("category")["amount"].sum()
@@ -268,11 +267,51 @@ else:
                     st.warning("Invalid index selected.")
             if st.button("Cancel", key="cancel_delete_btn"):
                 st.session_state.delete_mode = False
-    else:
-        st.info("No spendings entered yet.")
 
-# TODO: Implement logic so that Savings = Income - Spendings
-# if st.session_state.spendings and st.session_state.income:
-#     df_spendings = pd.DataFrame(st.session_state.spendings)
-#     df_income = pd.DataFrame(st.session_state.income)
-#     selected_currency = st.selectbox("Currency for Savings Calculation")
+        if st.session_state.spendings and st.session_state.income:
+            df_spendings = pd.DataFrame(st.session_state.spendings)
+            df_income = pd.DataFrame(st.session_state.income)
+            savings_per_month = []
+            for month in MONTHS:
+                income_this_month = df_income[
+                    (df_income["year"] == year_page) &
+                    (df_income["month"] == month )
+                ]["amount"].sum()
+
+                spendings_this_month = df_spendings[
+                    (df_spendings["year"] == year_page) &
+                    (df_spendings["month"] == month ) &
+                    (df_spendings["category"] != "Savings")
+                ]["amount"].sum()
+
+                savings = income_this_month - spendings_this_month
+
+                # Only append if savings > 0 and not already present
+                already_saved = any(
+                    (s.get("year") == year_page and s.get("month") == month and s.get("currency") == selected_currency and s.get("category") == "Savings")
+                    for s in st.session_state.spendings
+                )
+                if savings > 0 and not already_saved:
+                    st.session_state.spendings.append({
+                        "amount": savings,
+                        "category": "Savings",
+                        "year": year_page,
+                        "month": month,
+                        "currency": selected_currency,
+                        "notes": st.markdown("*Auto calculated*")
+                    })
+                    save_data()
+
+            df_display = pd.DataFrame(st.session_state.spendings)
+            st.subheader(f"Spending Proportions for {year_page} (including Automated Savings)")
+            proportions = df_display[
+                (df_display["year"] == year_page) & (df_display["currency"] == selected_currency)
+            ].groupby("category")["amount"].sum()
+            if not proportions.empty:
+                fig, ax = plt.subplots()
+                ax.pie(proportions, labels=proportions.index, autopct="%1.1f%%")
+                st.pyplot(fig)
+            else:
+                st.info("No spendings entered for selected year and currency.")
+        else:
+            st.info("No spendings entered yet.")
